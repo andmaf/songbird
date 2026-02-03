@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a0a0f">
+    <meta name="color-scheme" content="dark">
+    <title>Bird Log</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app">
+        <header>
+            <h1>Bird Log</h1>
+            <p class="tagline">Movement becomes music</p>
+        </header>
+
+        <main>
+            <!-- Connection Panel -->
+            <section id="connection-panel" class="panel">
+                <div class="connection-options">
+                    <div class="option">
+                        <label for="arduino-ip">Arduino IP</label>
+                        <div class="input-group">
+                            <input type="text" id="arduino-ip" placeholder="192.168.1.100">
+                            <button id="connect-btn">Connect</button>
+                        </div>
+                    </div>
+                    <div class="divider">or</div>
+                    <div class="option">
+                        <button id="demo-btn" class="demo-button">Demo Mode</button>
+                        <p class="hint">Try without hardware</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Status Display -->
+            <section id="status-panel" class="panel hidden">
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span id="status-text">Connecting...</span>
+                </div>
+                <div id="progress-container" class="hidden">
+                    <div class="progress-bar">
+                        <div id="progress-fill" class="progress-fill"></div>
+                    </div>
+                    <span id="progress-text">0%</span>
+                </div>
+            </section>
+
+            <!-- Playback Panel -->
+            <section id="playback-panel" class="panel hidden">
+                <p class="invite-text">Your bird wants to sing</p>
+                <button id="play-btn" class="play-button">
+                    <svg viewBox="0 0 24 24" class="play-icon">
+                        <polygon points="5,3 19,12 5,21" fill="currentColor"/>
+                    </svg>
+                </button>
+                <div id="playback-progress" class="playback-progress hidden">
+                    <div class="playback-bar">
+                        <div id="playback-fill" class="playback-fill"></div>
+                    </div>
+                    <span id="playback-time">0:00</span>
+                </div>
+            </section>
+
+            <!-- Sound Controls Panel -->
+            <section id="sound-controls-panel" class="panel hidden">
+                <h2>Sound Controls</h2>
+
+                <!-- Master Volume -->
+                <div class="control-row master-control">
+                    <span class="control-label">Master</span>
+                    <input type="range" id="master-volume" class="volume-slider" min="0" max="100" value="80">
+                    <span class="volume-value" id="master-volume-value">80%</span>
+                </div>
+
+                <div class="controls-divider"></div>
+
+                <!-- Pad (Ambient) -->
+                <div class="instrument-group">
+                    <div class="control-row">
+                        <button class="mute-btn" id="pad-mute" title="Mute Pad">
+                            <svg viewBox="0 0 24 24" class="sound-icon"><path d="M3 9v6h4l5 5V4L7 9H3z" fill="currentColor"/></svg>
+                        </button>
+                        <span class="control-label instrument-name">Pad</span>
+                        <input type="range" id="pad-volume" class="volume-slider" min="0" max="100" value="70">
+                        <span class="volume-value" id="pad-volume-value">70%</span>
+                    </div>
+                    <div class="envelope-controls">
+                        <div class="env-control">
+                            <span class="env-label">Attack</span>
+                            <input type="range" id="pad-attack" class="env-slider" min="1" max="400" value="200">
+                            <span class="env-value" id="pad-attack-value">2.0s</span>
+                        </div>
+                        <div class="env-control">
+                            <span class="env-label">Release</span>
+                            <input type="range" id="pad-release" class="env-slider" min="10" max="800" value="400">
+                            <span class="env-value" id="pad-release-value">4.0s</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pluck (Melody) -->
+                <div class="instrument-group">
+                    <div class="control-row">
+                        <button class="mute-btn" id="pluck-mute" title="Mute Pluck">
+                            <svg viewBox="0 0 24 24" class="sound-icon"><path d="M3 9v6h4l5 5V4L7 9H3z" fill="currentColor"/></svg>
+                        </button>
+                        <span class="control-label instrument-name">Melody</span>
+                        <input type="range" id="pluck-volume" class="volume-slider" min="0" max="100" value="85">
+                        <span class="volume-value" id="pluck-volume-value">85%</span>
+                    </div>
+                    <div class="envelope-controls">
+                        <div class="env-control">
+                            <span class="env-label">Attack</span>
+                            <input type="range" id="pluck-attack" class="env-slider" min="0" max="200" value="50">
+                            <span class="env-value" id="pluck-attack-value">0.50</span>
+                        </div>
+                        <div class="env-control">
+                            <span class="env-label">Dampen</span>
+                            <input type="range" id="pluck-dampening" class="env-slider" min="100" max="8000" value="2000">
+                            <span class="env-value" id="pluck-dampening-value">2000</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Membrane (Percussion) -->
+                <div class="instrument-group">
+                    <div class="control-row">
+                        <button class="mute-btn" id="perc-mute" title="Mute Percussion">
+                            <svg viewBox="0 0 24 24" class="sound-icon"><path d="M3 9v6h4l5 5V4L7 9H3z" fill="currentColor"/></svg>
+                        </button>
+                        <span class="control-label instrument-name">Percussion</span>
+                        <input type="range" id="perc-volume" class="volume-slider" min="0" max="100" value="50">
+                        <span class="volume-value" id="perc-volume-value">50%</span>
+                    </div>
+                    <div class="envelope-controls">
+                        <div class="env-control">
+                            <span class="env-label">Attack</span>
+                            <input type="range" id="perc-attack" class="env-slider" min="1" max="100" value="1">
+                            <span class="env-value" id="perc-attack-value">0.01s</span>
+                        </div>
+                        <div class="env-control">
+                            <span class="env-label">Decay</span>
+                            <input type="range" id="perc-decay" class="env-slider" min="10" max="300" value="80">
+                            <span class="env-value" id="perc-decay-value">0.8s</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="controls-divider"></div>
+
+                <!-- Reverb -->
+                <div class="control-row">
+                    <span class="control-label">Reverb</span>
+                    <input type="range" id="reverb-wet" class="volume-slider" min="0" max="100" value="60">
+                    <span class="volume-value" id="reverb-wet-value">60%</span>
+                </div>
+            </section>
+
+            <!-- Data Summary -->
+            <section id="summary-panel" class="panel hidden">
+                <h2>Today's Activity</h2>
+                <div class="stats">
+                    <div class="stat">
+                        <span class="stat-value" id="stat-steps">--</span>
+                        <span class="stat-label">steps</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" id="stat-active">--</span>
+                        <span class="stat-label">active min</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" id="stat-fidget">--</span>
+                        <span class="stat-label">fidgets</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Bird Log Project</p>
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
+    <script src="demo-data.js"></script>
+    <script src="music.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
