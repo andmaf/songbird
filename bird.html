@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0a0a0a">
+    <meta name="color-scheme" content="dark">
+    <title>Songbirds</title>
+    <link rel="stylesheet" href="bird.css">
+</head>
+<body>
+    <div id="scene">
+        <pre id="bird-canvas"></pre>
+        <div id="part-label"></div>
+        <div id="status-line"></div>
+        <div id="progress-bar"><div id="progress-fill"></div></div>
+    </div>
+
+    <div id="connection-bar">
+        <input id="arduino-ip" type="text" placeholder="Arduino IP">
+        <button id="connect-btn">Connect</button>
+        <button id="demo-btn">Demo</button>
+    </div>
+
+    <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
+    <script src="demo-data.js"></script>
+    <script src="music.js"></script>
+    <script src="bird-core.js"></script>
+    <script src="bird-presets.js"></script>
+    <script src="bird-art.js"></script>
+    <script src="bird-app.js"></script>
+</body>
+</html>
