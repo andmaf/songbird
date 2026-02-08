@@ -79,12 +79,12 @@ const RasterArt = (() => {
         // Rows 24-25 (tail tips)
         [_,_,_,_,_,_,_,_,_,_,T,T,T,T,_,_,T,T,_,_,T,T,T,T,_,_,_,_,_,_,_,_,_,_],
         [_,_,_,_,_,_,_,_,_,_,T,T,T,T,_,_,T,T,_,_,T,T,T,T,_,_,_,_,_,_,_,_,_,_],
-        // Rows 26-27 (empty)
-        [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
-        [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
-        // Rows 28-29 (nest)
-        [N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N],
-        [N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N],
+        // Rows 26-27 (nest rim)
+        [_,_,_,_,N,N,N,N,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,N,N,N,N,_,_,_,_],
+        [_,_,N,N,N,N,N,N,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,N,N,N,N,N,N,_,_],
+        // Rows 28-29 (nest base)
+        [_,_,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,_,_],
+        [_,_,_,_,_,_,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,_,_,_,_,_,_],
     ];
 
     // Alternative: bird flying (undocked)
@@ -128,18 +128,20 @@ const RasterArt = (() => {
         // Rows 24-25 (empty space)
         [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
         [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
-        // Rows 26-27 (empty)
-        [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
-        [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
-        // Rows 28-29 (nest - waiting)
-        [N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N],
-        [N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N],
+        // Rows 26-27 (nest rim)
+        [_,_,_,_,N,N,N,N,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,N,N,N,N,_,_,_,_],
+        [_,_,N,N,N,N,N,N,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,N,N,N,N,N,N,_,_],
+        // Rows 28-29 (nest base)
+        [_,_,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,_,_],
+        [_,_,_,_,_,_,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,_,_,_,_,_,_],
     ];
 
     // ─── Rendering ────────────────────────────────────────────
 
+    const NEST_SHAPE = SHAPES[0]; // ●
+
     function getShape(part) {
-        if (part === 'nest') return '~';
+        if (part === 'nest') return NEST_SHAPE;
         const idx = PARTS[part] ? PARTS[part].current : 0;
         return SHAPES[idx];
     }
@@ -155,7 +157,7 @@ const RasterArt = (() => {
                 if (part === null) {
                     html += '<span class="dot empty"></span>';
                 } else if (part === 'nest') {
-                    html += `<span class="dot nest-part" data-part="nest">~</span>`;
+                    html += `<span class="dot nest-part" data-part="nest">${NEST_SHAPE}</span>`;
                 } else {
                     const shape = getShape(part);
                     html += `<span class="dot bird-part" data-part="${part}">${shape}</span>`;

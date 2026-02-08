@@ -9,6 +9,37 @@
     let data = null;
     let ws = new BirdCore.WebSocketManager();
     let labelTimeout = null;
+    let wakeLock = null;
+
+    // ─── iOS audio session fix ─────────────
+    // A looping silent <audio> element forces iOS into "media playback" mode:
+    //  - Routes Web Audio to the main speaker (not earpiece)
+    //  - Keeps the audio session alive when the screen locks
+    const silentAudio = (() => {
+        const rate = 8000, seconds = 0.5;
+        const numSamples = rate * seconds;
+        const buf = new ArrayBuffer(44 + numSamples);
+        const v = new DataView(buf);
+        const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+        w(0,'RIFF'); v.setUint32(4, 36 + numSamples, true); w(8,'WAVE');
+        w(12,'fmt '); v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true);
+        v.setUint32(24,rate,true); v.setUint32(28,rate,true); v.setUint16(32,1,true); v.setUint16(34,8,true);
+        w(36,'data'); v.setUint32(40, numSamples, true);
+        for (let i = 44; i < 44 + numSamples; i++) v.setUint8(i, 128); // 8-bit silence
+        const audio = new Audio(URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })));
+        audio.loop = true;
+        return audio;
+    })();
+
+    async function acquireWakeLock() {
+        try {
+            if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen');
+        } catch (_) { /* unsupported or denied */ }
+    }
+
+    function releaseWakeLock() {
+        if (wakeLock) { wakeLock.release(); wakeLock = null; }
+    }
 
     // ─── DOM refs ───────────────────────────
     const canvas     = document.getElementById('bird-canvas');
@@ -172,23 +203,27 @@
         switch (state) {
             case STATES.READY:
             case STATES.FINISHED:
-                // Start playback
+                // Activate iOS audio session (speaker routing + background playback)
+                silentAudio.play().catch(() => {});
                 await Tone.start();
+                await acquireWakeLock();
                 setState(STATES.PLAYING);
                 musicEngine.play(data, (progress, elapsed) => {
-                    // Update progress bar for playback
                     showProgress(Math.round(progress * 100));
                     const min = Math.floor(elapsed / 60);
                     const sec = Math.floor(elapsed % 60);
                     setStatus(`playing ${min}:${sec.toString().padStart(2, '0')} ~ tap nest to stop`);
                 }, () => {
+                    silentAudio.pause();
+                    releaseWakeLock();
                     setState(STATES.FINISHED);
                 });
                 break;
 
             case STATES.PLAYING:
-                // Stop playback
                 musicEngine.stop();
+                silentAudio.pause();
+                releaseWakeLock();
                 setState(STATES.READY);
                 break;
         }
