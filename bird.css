@@ -11,23 +11,25 @@
     --fg: #c8c8c0;
     --dim: #555550;
     --bar-bg: rgba(10,10,10,0.95);
-    --accent: #d4a574;
-    --accent-dim: #a07850;
+    --accent: #E8A840;
+    --accent-dim: #B08030;
 
-    /* Part colors */
-    --beak-color: #d4a574;
-    --eye-color: #e8e8e0;
-    --body-color: #9898a0;
-    --wing-color: #6abfaf;
-    --tail-color: #b08060;
-    --nest-color: #8b7355;
+    /* Part colors — inspired by Painted Bunting, Gouldian Finch,
+       Superb Starling, Prothonotary Warbler */
+    --beak-color: #E8854A;
+    --eye-color: #EDEDE5;
+    --body-color: #F0B830;
+    --wing-color: #48A858;
+    --tail-color: #5060B8;
+    --nest-color: #8B7355;
     --nest-glow: rgba(139, 115, 85, 0.5);
 
     --success: #4a9;
     --error: #c55;
 
-    /* Grid sizing — single value controls everything */
-    --dot-size: 3rem;
+    /* Grid sizing — scales to fit 30 columns within the viewport width.
+       Also capped so dots don't get huge on wide screens. */
+    --dot-size: min(3vw, 3vh, 1.5rem);
     --dot-gap: 0rem;
 }
 
