@@ -229,6 +229,66 @@
         }
     }
 
+    // ─── Time-of-day sky ────────────────────
+    // [hour, r, g, b] — real sky colors
+    const SKY_STOPS = [
+        [ 0,  10,  10,  35],   // midnight — deep navy
+        [ 5,  26,  26,  61],   // pre-dawn — dark blue
+        [ 6, 212, 130,  90],   // dawn — orange-pink
+        [ 7, 155, 195, 220],   // early morning — pale blue
+        [10, 135, 195, 235],   // morning — sky blue
+        [12, 145, 210, 245],   // noon — bright sky
+        [16, 135, 195, 230],   // afternoon — sky blue
+        [18, 220, 140,  70],   // sunset — golden orange
+        [19, 180,  70,  50],   // deep sunset — red-orange
+        [20,  60,  40,  90],   // dusk — purple
+        [22,  15,  15,  45],   // night — dark navy
+        [24,  10,  10,  35],   // midnight wrap
+    ];
+
+    function lerpStops(stops, t) {
+        let lo = stops[0], hi = stops[1];
+        for (let i = 1; i < stops.length; i++) {
+            if (t < stops[i][0]) { hi = stops[i]; break; }
+            lo = stops[i];
+        }
+        const span = hi[0] - lo[0];
+        const f = span > 0 ? (t - lo[0]) / span : 0;
+        return [
+            Math.round(lo[1] + (hi[1] - lo[1]) * f),
+            Math.round(lo[2] + (hi[2] - lo[2]) * f),
+            Math.round(lo[3] + (hi[3] - lo[3]) * f),
+        ];
+    }
+
+    function updateSkyColor() {
+        const now = new Date();
+        const t = now.getHours() + now.getMinutes() / 60;
+        const [r, g, b] = lerpStops(SKY_STOPS, t);
+
+        // Background
+        const bg = `rgb(${r},${g},${b})`;
+        document.documentElement.style.setProperty('--bg', bg);
+        document.querySelector('meta[name="theme-color"]').content = bg;
+
+        // Perceived luminance (0–1)
+        const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+        // Adapt text and UI to background brightness
+        if (lum > 0.45) {
+            document.documentElement.style.setProperty('--fg', '#1a1a1a');
+            document.documentElement.style.setProperty('--dim', '#555');
+            document.documentElement.style.setProperty('--bar-bg', 'rgba(255,255,255,0.75)');
+        } else {
+            document.documentElement.style.setProperty('--fg', '#c8c8c0');
+            document.documentElement.style.setProperty('--dim', '#555550');
+            document.documentElement.style.setProperty('--bar-bg', 'rgba(10,10,10,0.95)');
+        }
+    }
+
+    updateSkyColor();
+    setInterval(updateSkyColor, 60000);
+
     // ─── Init ───────────────────────────────
     setState(STATES.IDLE);
 

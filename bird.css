@@ -7,9 +7,10 @@
 }
 
 :root {
-    --bg: #0a0a0a;
+    --bg: #0a0a23;
     --fg: #c8c8c0;
     --dim: #555550;
+    --bar-bg: rgba(10,10,10,0.95);
     --accent: #d4a574;
     --accent-dim: #a07850;
 
@@ -25,9 +26,9 @@
     --success: #4a9;
     --error: #c55;
 
-    /* Grid sizing — fills viewport width minus 1rem each side */
-    --dot-size: calc((100vw - 2rem) / 17);
-    --dot-gap: 0px;
+    /* Grid sizing — single value controls everything */
+    --dot-size: 3rem;
+    --dot-gap: 0rem;
 }
 
 html, body {
@@ -85,7 +86,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: calc(var(--dot-size) * 0.75);
+    font-size: var(--dot-size);
     line-height: 1;
     transition: transform 0.15s, opacity 0.15s, color 0.2s, text-shadow 0.2s;
 }
@@ -262,7 +263,7 @@ body {
     justify-content: center;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
-    background: rgba(10, 10, 10, 0.95);
+    background: var(--bar-bg);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     border-top: 1px solid rgba(85, 85, 80, 0.15);
@@ -346,9 +347,3 @@ body {
 }
 
 
-/* ─── Dark mode enhancements ────────────── */
-@media (prefers-color-scheme: dark) {
-    :root {
-        --bg: #050505;
-    }
-}
