@@ -26,7 +26,7 @@
     --error: #c55;
 
     /* Grid sizing — fills viewport width minus 1rem each side */
-    --dot-size: calc((100vw - 2rem) / 34);
+    --dot-size: calc((100vw - 2rem) / 17);
     --dot-gap: 0px;
 }
 
