@@ -1,5 +1,9 @@
 // Bird Log - Music Generation Engine using Tone.js
 // Architecture: 4 layers (Lead, Pad, Bass, Drums) with Reverb + Delay sends
+// Music logic: seed phrase + repetition with data-driven manipulations
+
+// ========== GLOBAL TEMPO — edit this for fine-tuning ==========
+let FIXED_TEMPO = 33;
 
 class MusicEngine {
     constructor() {
@@ -1113,11 +1117,11 @@ class MusicEngine {
         const totalMinutes = data.minutes.length;
         // Base duration calculation, then scale by tempo (75 BPM is neutral)
         const baseSecondsPerMinute = Math.max(0.5, Math.min(2, 180 / totalMinutes));
-        const tempoScale = 75 / this.birdVoice.musicality.tempo;
+        const tempoScale = 75 / FIXED_TEMPO;
         const secondsPerMinute = baseSecondsPerMinute * tempoScale;
         this.duration = totalMinutes * secondsPerMinute;
 
-        Tone.Transport.bpm.value = this.birdVoice.musicality.tempo;
+        Tone.Transport.bpm.value = FIXED_TEMPO;
 
         // Schedule all musical events
         this.scheduleMusic(data.minutes, secondsPerMinute);
@@ -1153,61 +1157,214 @@ class MusicEngine {
         this.startLFOs();
     }
 
+    // ========== SEED PHRASE GENERATION ==========
+
+    // Build a single melodic phrase from the full day's data.
+    // Samples 8 evenly-spaced data points → 8 beat-slots (2 bars).
+    generateSeedPhrase(minutes) {
+        const scale = this.scales[this.birdVoice.musicality.scale] || this.scales.ambient;
+        const beatDuration = 60 / FIXED_TEMPO;
+        const phraseBeats = 8; // 2 bars of 4/4
+        const phraseDuration = phraseBeats * beatDuration;
+
+        // Sample data points evenly across the day
+        const samples = [];
+        for (let i = 0; i < phraseBeats; i++) {
+            const idx = Math.floor(i * minutes.length / phraseBeats);
+            samples.push(minutes[idx]);
+        }
+
+        // Each sample becomes one beat-slot in the phrase
+        const notes = [];
+        for (let i = 0; i < phraseBeats; i++) {
+            const params = this.mapDataToMusic(samples[i]);
+            const offset = i * beatDuration;
+
+            if (params.stillness) {
+                notes.push({ note: null, duration: beatDuration * 0.8, velocity: 0, offset });
+            } else {
+                const note = this.selectNote(scale, params.pitchTendency);
+                const velocity = Math.min(1, Math.max(0.3,
+                    0.5 + ((samples[i].avg_acc || 1) - 1) * 0.3));
+                notes.push({ note, duration: beatDuration * 0.8, velocity, offset });
+            }
+        }
+
+        return { notes, duration: phraseDuration };
+    }
+
+    // ========== PHRASE MANIPULATIONS ==========
+    // All return a new phrase object — never mutate the original.
+
+    // Shift every note by N scale degrees (positive = up, negative = down).
+    // Stays strictly within the song's common scale.
+    transposeInScale(phrase, scale, degrees) {
+        return {
+            ...phrase,
+            notes: phrase.notes.map(n => {
+                if (!n.note) return { ...n };
+                const idx = scale.indexOf(n.note);
+                if (idx === -1) return { ...n };
+                const newIdx = Math.max(0, Math.min(scale.length - 1, idx + degrees));
+                return { ...n, note: scale[newIdx] };
+            })
+        };
+    }
+
+    // Replace some notes with an adjacent scale neighbor.
+    substituteNotes(phrase, scale, probability) {
+        return {
+            ...phrase,
+            notes: phrase.notes.map(n => {
+                if (!n.note || Math.random() > probability) return { ...n };
+                const idx = scale.indexOf(n.note);
+                if (idx === -1) return { ...n };
+                const shift = Math.random() < 0.5 ? -1 : 1;
+                const newIdx = Math.max(0, Math.min(scale.length - 1, idx + shift));
+                return { ...n, note: scale[newIdx] };
+            })
+        };
+    }
+
+    // Drop notes to create rests — silence as musical expression.
+    omitNotes(phrase, probability) {
+        return {
+            ...phrase,
+            notes: phrase.notes.map(n => {
+                if (!n.note || Math.random() > probability) return { ...n };
+                return { ...n, note: null, velocity: 0 };
+            })
+        };
+    }
+
+    // Scale all velocities by a factor (louder or softer repetition).
+    applyDynamics(phrase, factor) {
+        return {
+            ...phrase,
+            notes: phrase.notes.map(n => ({
+                ...n,
+                velocity: Math.min(1, Math.max(0, n.velocity * factor))
+            }))
+        };
+    }
+
+    // Insert a short grace note after some notes.
+    addOrnaments(phrase, scale, chance) {
+        const newNotes = [];
+        for (const n of phrase.notes) {
+            newNotes.push({ ...n });
+            if (n.note && Math.random() < chance) {
+                const idx = scale.indexOf(n.note);
+                if (idx >= 0) {
+                    const ornIdx = Math.min(scale.length - 1, idx + 1);
+                    newNotes.push({
+                        note: scale[ornIdx],
+                        duration: 0.1,
+                        velocity: n.velocity * 0.6,
+                        offset: n.offset + n.duration * 0.5
+                    });
+                }
+            }
+        }
+        return { ...phrase, notes: newNotes };
+    }
+
+    // ========== SCHEDULING ==========
+
     scheduleMusic(minutes, secondsPerMinute) {
         const scaleName = this.birdVoice.musicality.scale;
         const scale = this.scales[scaleName] || this.scales.ambient;
         const bassScale = this.bassScales[scaleName] || this.bassScales.ambient;
-        let lastBassNote = null;
 
+        // ── Phase 1: generate the day's seed phrase ──
+        const seedPhrase = this.generateSeedPhrase(minutes);
+
+        // ── Phase 2: repeat the phrase across the full duration ──
+        const totalDuration = minutes.length * secondsPerMinute;
+        const repetitions = Math.max(1, Math.floor(totalDuration / seedPhrase.duration));
+        const segmentsPerCycle = Math.max(1, Math.floor(minutes.length / repetitions));
+
+        // ========== LEAD (phrase repetitions with manipulations) ==========
+        for (let rep = 0; rep < repetitions; rep++) {
+            const cycleStart = rep * seedPhrase.duration;
+
+            // Data window for this cycle
+            const cycleDataStart = rep * segmentsPerCycle;
+            const cycleData = minutes.slice(cycleDataStart, cycleDataStart + segmentsPerCycle);
+            if (cycleData.length === 0) continue;
+
+            // Mutation intensity: how active was this window?
+            const avgActivity = cycleData.reduce((s, m) => s + (m.avg_acc || 1), 0) / cycleData.length;
+            const totalFidgets = cycleData.reduce((s, m) => s + (m.fidget_events || 0), 0);
+            const mutationIntensity = Math.min(1, Math.max(0, (avgActivity - 1) * 2));
+
+            // Fresh copy of the seed
+            let phrase = {
+                ...seedPhrase,
+                notes: seedPhrase.notes.map(n => ({ ...n }))
+            };
+
+            // Transposition — occasional shift within the scale
+            if (rep > 0 && Math.random() < mutationIntensity * 0.4) {
+                const degrees = Math.random() < 0.5
+                    ? Math.floor(Math.random() * 3) + 1
+                    : -(Math.floor(Math.random() * 3) + 1);
+                phrase = this.transposeInScale(phrase, scale, degrees);
+            }
+
+            // Note substitution — more likely when active
+            if (mutationIntensity > 0.2) {
+                phrase = this.substituteNotes(phrase, scale, mutationIntensity * 0.3);
+            }
+
+            // Omission — calm cycles drop notes (silence as expression)
+            const calmness = Math.max(0, 1 - mutationIntensity);
+            if (calmness > 0.3) {
+                phrase = this.omitNotes(phrase, calmness * 0.3);
+            }
+
+            // Dynamics — activity controls volume
+            const dynamicsFactor = 0.6 + mutationIntensity * 0.6;
+            phrase = this.applyDynamics(phrase, dynamicsFactor);
+
+            // Ornamentation — fidgets trigger grace notes
+            if (totalFidgets > 0) {
+                phrase = this.addOrnaments(phrase, scale, Math.min(0.4, totalFidgets * 0.08));
+            }
+
+            // Schedule the manipulated phrase
+            for (const n of phrase.notes) {
+                if (!n.note) continue;
+                const noteTime = cycleStart + n.offset;
+                if (noteTime >= totalDuration) continue;
+                const leadEvent = Tone.Transport.schedule((time) => {
+                    this.lead.synth.triggerAttackRelease(n.note, n.duration, time, n.velocity);
+                }, noteTime);
+                this.scheduledEvents.push(leadEvent);
+            }
+        }
+
+        // ========== BASS (slow harmonic changes, every few phrase cycles) ==========
+        let lastBassChange = -999;
+        for (let rep = 0; rep < repetitions; rep++) {
+            const cycleStart = rep * seedPhrase.duration;
+            if (rep === 0 || (rep - lastBassChange) >= (3 + Math.floor(Math.random() * 3))) {
+                lastBassChange = rep;
+                const bassNote = bassScale[Math.floor(Math.random() * 3)];
+                const bassDuration = seedPhrase.duration * Math.min(4, repetitions - rep);
+                const bassEvent = Tone.Transport.schedule((time) => {
+                    this.bass.synth.triggerAttackRelease(bassNote, bassDuration, time, 0.6);
+                }, cycleStart);
+                this.scheduledEvents.push(bassEvent);
+            }
+        }
+
+        // ========== DRUMS (activity-driven, per data segment) ==========
         minutes.forEach((minute, index) => {
             const params = this.mapDataToMusic(minute);
             const sectionStart = index * secondsPerMinute;
 
-            // ========== BASS ==========
-            // Bass plays root notes, changing every 4-8 sections
-            if (index % Math.floor(4 + Math.random() * 4) === 0 || index === 0) {
-                const bassNote = bassScale[Math.floor(Math.random() * 3)]; // Low notes
-                lastBassNote = bassNote;
-
-                const bassEvent = Tone.Transport.schedule((time) => {
-                    this.bass.synth.triggerAttackRelease(
-                        bassNote,
-                        secondsPerMinute * 4,
-                        time,
-                        0.6
-                    );
-                }, sectionStart);
-                this.scheduledEvents.push(bassEvent);
-            }
-
-            // ========== LEAD ==========
-            // Melodic notes based on activity density
-            if (!params.stillness) {
-                for (let i = 0; i < params.density; i++) {
-                    const noteTime = sectionStart + (i / params.density) * secondsPerMinute;
-                    const note = this.selectNote(scale, params.pitchTendency);
-                    const noteDuration = secondsPerMinute / params.density * 0.8; // 80% of note slot
-
-                    const leadEvent = Tone.Transport.schedule((time) => {
-                        this.lead.synth.triggerAttackRelease(note, noteDuration, time);
-                    }, noteTime);
-                    this.scheduledEvents.push(leadEvent);
-
-                    // Ornaments on fidgets
-                    if (Math.random() < params.ornamentChance) {
-                        const ornamentNote = this.selectNote(scale, params.pitchTendency);
-                        const ornamentEvent = Tone.Transport.schedule((time) => {
-                            this.lead.synth.triggerAttackRelease(ornamentNote, 0.15, time);
-                        }, noteTime + 0.1);
-                        this.scheduledEvents.push(ornamentEvent);
-                    }
-                }
-            }
-
-            // ========== DRUMS ==========
-            // Subtle percussion on higher activity
             if (params.density >= 2) {
-                // Soft kick
                 if (Math.random() < 0.2) {
                     const kickEvent = Tone.Transport.schedule((time) => {
                         this.drums.kick.triggerAttackRelease('C1', '8n', time, 0.3);
@@ -1215,7 +1372,6 @@ class MusicEngine {
                     this.scheduledEvents.push(kickEvent);
                 }
 
-                // Hi-hat on fidgets
                 if (params.density >= 3 && Math.random() < 0.3) {
                     const hatEvent = Tone.Transport.schedule((time) => {
                         this.drums.hat.triggerAttackRelease('16n', time, 0.2);
@@ -1223,7 +1379,6 @@ class MusicEngine {
                     this.scheduledEvents.push(hatEvent);
                 }
 
-                // Glitchy click occasionally
                 if (Math.random() < params.ornamentChance * 0.5) {
                     const clickEvent = Tone.Transport.schedule((time) => {
                         this.drums.click.triggerAttackRelease('C6', '32n', time, 0.15);
