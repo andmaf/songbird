@@ -86,9 +86,13 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: var(--dot-size);
-    line-height: 1;
-    transition: transform 0.15s, opacity 0.15s, color 0.2s, text-shadow 0.2s;
+    transition: transform 0.15s, opacity 0.15s;
+}
+
+.dot svg {
+    width: 100%;
+    height: 100%;
+    display: block;
 }
 
 .dot.empty {
@@ -99,13 +103,22 @@ body {
 /* ─── Clickable bird parts ──────────────── */
 .bird-part {
     cursor: pointer;
-    opacity: 0.85;
+    opacity: 1;
+}
+
+.bird-part svg circle {
+    stroke: #fff;
+    stroke-width: 0.5;
+}
+
+.bird-part[data-part="eye"] svg circle {
+    stroke: #000;
 }
 
 .bird-part:hover {
     opacity: 1;
     transform: scale(1.15);
-    text-shadow: 0 0 8px currentColor;
+    filter: drop-shadow(0 0 4px currentColor);
 }
 
 .bird-part:active {
@@ -113,22 +126,27 @@ body {
 }
 
 /* Part-specific colors */
-.bird-part[data-part="beak"]  { color: var(--beak-color); }
-.bird-part[data-part="eye"]   { color: var(--eye-color); }
-.bird-part[data-part="body"]  { color: var(--body-color); }
-.bird-part[data-part="wings"] { color: var(--wing-color); }
-.bird-part[data-part="tail"]  { color: var(--tail-color); }
+.bird-part[data-part="beak"]  svg circle { fill: var(--beak-color); }
+.bird-part[data-part="eye"]   svg circle { fill: var(--eye-color); }
+.bird-part[data-part="body"]  svg circle { fill: var(--body-color); }
+.bird-part[data-part="wings"] svg circle { fill: var(--wing-color); }
+.bird-part[data-part="tail"]  svg circle { fill: var(--tail-color); }
 
 /* Nest */
 .nest-part {
-    color: var(--nest-color);
     cursor: pointer;
     opacity: 0.6;
 }
 
+.nest-part svg circle {
+    fill: var(--nest-color);
+    stroke: #fff;
+    stroke-width: 1;
+}
+
 .nest-part:hover {
     opacity: 1;
-    text-shadow: 0 0 10px var(--nest-glow);
+    filter: drop-shadow(0 0 6px var(--nest-glow));
 }
 
 /* ─── State-based animations ────────────── */
@@ -157,13 +175,13 @@ body {
 /* Nest warm glow when playing */
 .playing .nest-part {
     opacity: 0.8;
-    text-shadow: 0 0 12px var(--nest-glow);
+    filter: drop-shadow(0 0 8px var(--nest-glow));
     animation: nestGlow 4s ease-in-out infinite;
 }
 
 @keyframes nestGlow {
-    0%, 100% { text-shadow: 0 0 8px var(--nest-glow); }
-    50%      { text-shadow: 0 0 16px var(--nest-glow); }
+    0%, 100% { filter: drop-shadow(0 0 8px var(--nest-glow)); }
+    50%      { filter: drop-shadow(0 0 16px var(--nest-glow)); }
 }
 
 /* Nest pulse when connecting */
@@ -193,12 +211,11 @@ body {
 
 @keyframes partFlash {
     0%   {
-        color: #fff;
-        text-shadow: 0 0 15px #fff;
+        filter: drop-shadow(0 0 10px #fff) brightness(2);
         transform: scale(1.3);
     }
     100% {
-        text-shadow: none;
+        filter: none;
         transform: scale(1);
     }
 }
@@ -334,7 +351,7 @@ body {
 .ready .nest-part,
 .finished .nest-part {
     opacity: 0.8;
-    text-shadow: 0 0 6px var(--nest-glow);
+    filter: drop-shadow(0 0 6px var(--nest-glow));
 }
 
 /* ─── Idle state - dimmed ───────────────── */
