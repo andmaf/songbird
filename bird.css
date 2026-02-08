@@ -29,7 +29,7 @@
 
     /* Grid sizing — scales to fit 30 columns within the viewport width.
        Also capped so dots don't get huge on wide screens. */
-    --dot-size: min(3vw, 3vh, 1.5rem);
+    --dot-size: min(4vw, 4vh, 2rem);
     --dot-gap: 0rem;
 }
 
